@@ -6,14 +6,11 @@ const path = require('path');
 const link = require('./models/link')
 require('dotenv').config();
 
-const db = 'mongodb+srv://Chaitanya:UdKx7BwdRudtZuy@linkly.r2qudl1.mongodb.net/?retryWrites=true&w=majority'
-mongoose
-    .connect(db, { 
-        useNewUrlParser: true,
-        useCreateIndex: true
-      })
-    .then(() => console.log('MongoDB connected...'))
-    .catch(err => console.log(err));
+mongoose.connect(process.env.DB_URI,{ 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true 
+}).then(() => console.log('MongoDB Connected'))
+.catch(err => console.log(err))
 
 const PORT = process.env.PORT || 8000;
 
@@ -56,8 +53,8 @@ app.post("/link", async(req,res)=>{
     mainUrl = req.body.fullurl
     backlink = req.body.backlink
     await link.create({
-        full : mainUrl,
-        short: backlink,
+        fulllink : mainUrl,
+        shortendedlink: backlink,
     });
     mainId = backlink;
     res.redirect("/link")
@@ -69,7 +66,7 @@ app.get('/:shortUrl', async(req,res)=>{
 
     shortUrl.save();
 
-    res.redirect(shortUrl.full)
+    res.redirect(shortUrl.fullLINK)
 })
 
 app.listen(PORT, console.log(`Server started on port ${PORT}`));
