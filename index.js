@@ -6,11 +6,14 @@ const path = require('path');
 const link = require('./models/link')
 require('dotenv').config();
 
-mongoose.connect(process.env.DB_URI,{ 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true 
-}).then(() => console.log('MongoDB Connected'))
-.catch(err => console.log(err))
+const db = 'mongodb+srv://Chaitanya:UdKx7BwdRudtZuy@linkly.r2qudl1.mongodb.net/?retryWrites=true&w=majority'
+mongoose
+    .connect(db, { 
+        useNewUrlParser: true,
+        useCreateIndex: true
+      })
+    .then(() => console.log('MongoDB connected...'))
+    .catch(err => console.log(err));
 
 const PORT = process.env.PORT || 8000;
 
