@@ -12,4 +12,4 @@ const link = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('Link', shortUrls)
+module.exports = mongoose.model('Link', link)
