@@ -1,16 +1,26 @@
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose')
-const shortid = require('shortid')
 const path = require('path');
 const link = require('./models/link')
 require('dotenv').config();
 
-mongoose.connect(process.env.DB_URI,{ 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true 
-}).then(() => console.log('MongoDB Connected'))
-.catch(err => console.log(err))
+let dbConnection;
+
+function connectDB() {
+    if (!process.env.DB_URI) {
+        throw new Error('DB_URI environment variable is missing');
+    }
+
+    if (!dbConnection) {
+        dbConnection = mongoose.connect(process.env.DB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+    }
+
+    return dbConnection;
+}
 
 const PORT = process.env.PORT || 8000;
 
@@ -23,50 +33,58 @@ app.get("/", (req,res)=>{
     res.render('index.ejs')
 })
 
-let mainId = "";
-let mainUrl = "";
 app.get("/link", async (req,res)=>{
-    res.render('link.ejs', {link : mainId, url: mainUrl})
-    mainId = "";
-    mainUrl = "";
+    const shortCode = req.query.short || "";
+    const fullUrl = req.query.url || "";
+    const shortUrl = shortCode ? `${req.protocol}://${req.get('host')}/${shortCode}` : "";
+
+    res.render('link.ejs', {link: shortCode, url: fullUrl, shortUrl})
 })
 
-app.get('/checkBacklink', (req,res)=>{
+app.get('/checkBacklink', async (req,res)=>{
     const backlink = req.query.backlink;
-    link.findOne({short : backlink})
-    .then(doc => {
-        if(doc){
-            res.json({
-                status: true,
-            })
-        }else{
-            res.json({
-                status: false,
-            })
-        }
-    }).catch(err => {
-        console.log(err)
-    })
+    try {
+        await connectDB();
+        const doc = await link.findOne({shortendedlink: backlink});
+        res.json({status: Boolean(doc)});
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({error: 'Unable to check short link'});
+    }
 })
 
 app.post("/link", async(req,res)=>{
-    mainUrl = req.body.fullurl
-    backlink = req.body.backlink
-    await link.create({
-        fulllink : mainUrl,
-        shortendedlink: backlink,
-    });
-    mainId = backlink;
-    res.redirect("/link")
+    const mainUrl = req.body.fullurl;
+    const backlink = req.body.backlink.trim();
+
+    try {
+        await connectDB();
+        await link.create({
+            fulllink: mainUrl,
+            shortendedlink: backlink,
+        });
+        res.redirect(`/link?short=${encodeURIComponent(backlink)}&url=${encodeURIComponent(mainUrl)}`)
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Unable to shorten link. Please check the database configuration.')
+    }
 })
 
 app.get('/:shortUrl', async(req,res)=>{
-    const shortUrl = await link.findOne({short: req.params.shortUrl})
-    if(shortUrl == null) return res.sendStatus(404)
+    try {
+        await connectDB();
+        const shortUrl = await link.findOne({shortendedlink: req.params.shortUrl})
+        if(shortUrl == null) return res.sendStatus(404)
 
-    shortUrl.save();
-
-    res.redirect(shortUrl.fullLINK)
+        res.redirect(shortUrl.fulllink)
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Unable to open short link. Please check the database configuration.')
+    }
 })
 
-app.listen(PORT, console.log(`Server started on port ${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, console.log(`Server started on port ${PORT}`));
+}
+
+module.exports = app;
