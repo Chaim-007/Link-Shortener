@@ -8,12 +8,14 @@ require('dotenv').config();
 let dbConnection;
 
 function connectDB() {
-    if (!process.env.DB_URI) {
+    const dbUri = process.env.DB_URI && process.env.DB_URI.trim();
+
+    if (!dbUri) {
         throw new Error('DB_URI environment variable is missing');
     }
 
     if (!dbConnection) {
-        dbConnection = mongoose.connect(process.env.DB_URI, {
+        dbConnection = mongoose.connect(dbUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
