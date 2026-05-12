@@ -8,10 +8,22 @@ require('dotenv').config();
 let dbConnection;
 
 function connectDB() {
-    const dbUri = process.env.DB_URI && process.env.DB_URI.trim();
+    let dbUri = process.env.DB_URI && process.env.DB_URI.trim();
+
+    if (dbUri && dbUri.startsWith('DB_URI=')) {
+        dbUri = dbUri.slice('DB_URI='.length).trim();
+    }
+
+    if (dbUri && ((dbUri.startsWith('"') && dbUri.endsWith('"')) || (dbUri.startsWith("'") && dbUri.endsWith("'")))) {
+        dbUri = dbUri.slice(1, -1).trim();
+    }
 
     if (!dbUri) {
         throw new Error('DB_URI environment variable is missing');
+    }
+
+    if (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://')) {
+        throw new Error('DB_URI must start with mongodb:// or mongodb+srv://');
     }
 
     if (!dbConnection) {
@@ -30,6 +42,10 @@ app.use(express.urlencoded({extended:false}))
 
 app.get("/", (req,res)=>{
     res.render('index.ejs')
+})
+
+app.get(['/favicon.ico', '/favicon.png'], (req, res) => {
+    res.status(204).end();
 })
 
 app.get("/link", async (req,res)=>{
