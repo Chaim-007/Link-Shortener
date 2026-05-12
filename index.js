@@ -15,10 +15,7 @@ function connectDB() {
     }
 
     if (!dbConnection) {
-        dbConnection = mongoose.connect(dbUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        dbConnection = mongoose.connect(dbUri);
     }
 
     return dbConnection;
